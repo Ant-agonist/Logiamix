@@ -89,62 +89,87 @@
     ];
 
     const taille = 12;
-    const grille = Array.from({ length: taille }, () => Array(taille).fill(""));
-    const numeros = Array.from({ length: taille }, () => Array(taille).fill(null));
-    const motsPlaces = [];
+    let grille = [];
+    let numeros = [];
+    let motsPlaces = [];
     let compteurIndice = 1;
+
+    function initGrille() {
+      grille = Array.from({ length: taille }, () => Array(taille).fill(""));
+      numeros = Array.from({ length: taille }, () => Array(taille).fill(null));
+      motsPlaces = [];
+      compteurIndice = 1;
+    }
 
     function zoneValidePourPlacement(x, y, mot, vertical) {
       const dx = vertical ? 1 : 0;
       const dy = vertical ? 0 : 1;
+
       for (let i = 0; i < mot.length; i++) {
         const nx = x + i * dx;
         const ny = y + i * dy;
-        if (nx >= taille || ny >= taille) return false;
-        const lettre = grille[nx][ny];
-        if (lettre && lettre !== mot[i]) return false;
 
-        if (!lettre) {
+        if (nx < 0 || ny < 0 || nx >= taille || ny >= taille) return false;
+
+        const lettreExistante = grille[nx][ny];
+        if (lettreExistante && lettreExistante !== mot[i]) return false;
+
+        if (!lettreExistante) {
           const voisins = [
             [nx - 1, ny], [nx + 1, ny],
             [nx, ny - 1], [nx, ny + 1]
           ];
           for (const [vx, vy] of voisins) {
-            if (
-              vx >= 0 && vy >= 0 && vx < taille && vy < taille &&
-              grille[vx][vy] &&
-              !(dx && vx === nx - dx) && !(dy && vy === ny - dy)
-            ) {
-              return false;
+            if (vx >= 0 && vy >= 0 && vx < taille && vy < taille) {
+              if (grille[vx][vy]) {
+                const avantX = x - dx;
+                const avantY = y - dy;
+                const apresX = x + dx * mot.length;
+                const apresY = y + dy * mot.length;
+                if (!((vx === avantX && vy === avantY) || (vx === apresX && vy === apresY))) {
+                  return false;
+                }
+              }
             }
           }
         }
       }
 
-      const bx = x - dx;
-      const by = y - dy;
-      const ax = x + dx * mot.length;
-      const ay = y + dy * mot.length;
-      if ((bx >= 0 && by >= 0 && bx < taille && by < taille && grille[bx][by]) ||
-          (ax >= 0 && ay >= 0 && ax < taille && ay < taille && grille[ax][ay])) {
+      const avantX = x - (vertical ? 1 : 0);
+      const avantY = y - (vertical ? 0 : 1);
+      const apresX = x + (vertical ? mot.length : 0);
+      const apresY = y + (vertical ? 0 : mot.length);
+
+      if ((avantX >= 0 && avantY >= 0 && avantX < taille && avantY < taille && grille[avantX][avantY]) ||
+          (apresX >= 0 && apresY >= 0 && apresX < taille && apresY < taille && grille[apresX][apresY])) {
         return false;
       }
 
       return true;
     }
 
-    function chercherCroisement(mot) {
-      for (let i = 0; i < mot.mot.length; i++) {
-        const lettre = mot.mot[i];
-        for (const motExistant of motsPlaces) {
-          for (let j = 0; j < motExistant.mot.length; j++) {
-            if (motExistant.mot[j] === lettre) {
-              const x = motExistant.x + (motExistant.vertical ? j : 0);
-              const y = motExistant.y + (motExistant.vertical ? 0 : j);
-              const nvx = x - (mot.vertical ? i : 0);
-              const nvy = y - (mot.vertical ? 0 : i);
-              if (zoneValidePourPlacement(nvx, nvy, mot.mot, mot.vertical)) {
-                return { x: nvx, y: nvy };
+    function placerMotSurGrille(x, y, mot, vertical, numero) {
+      const dx = vertical ? 1 : 0;
+      const dy = vertical ? 0 : 1;
+      for (let i = 0; i < mot.length; i++) {
+        grille[x + i * dx][y + i * dy] = mot[i];
+      }
+      numeros[x][y] = numero;
+      motsPlaces.push({ mot: mot, x: x, y: y, vertical: vertical, numero: numero, definition: dictionnaire.find(d => d.mot === mot).definition });
+    }
+
+    function chercherPlacementAvecCroisement(mot) {
+      for (let i = 0; i < mot.length; i++) {
+        const lettre = mot[i];
+        for (const mPlace of motsPlaces) {
+          for (let j = 0; j < mPlace.mot.length; j++) {
+            if (mPlace.mot[j] === lettre) {
+              const vertical = !mPlace.vertical;
+              const x = mPlace.x + (mPlace.vertical ? j : 0) - (vertical ? i : 0);
+              const y = mPlace.y + (mPlace.vertical ? 0 : j) - (vertical ? 0 : i);
+
+              if (zoneValidePourPlacement(x, y, mot, vertical)) {
+                return { x, y, vertical };
               }
             }
           }
@@ -153,52 +178,36 @@
       return null;
     }
 
-    function placerMot(mot, vertical) {
-      mot.vertical = vertical;
-      if (motsPlaces.length === 0) {
-        const x = Math.floor(taille / 2);
-        const y = Math.floor((taille - mot.mot.length) / 2);
-        if (zoneValidePourPlacement(x, y, mot.mot, false)) {
-          for (let i = 0; i < mot.mot.length; i++) {
-            grille[x][y + i] = mot.mot[i];
-          }
-          numeros[x][y] = compteurIndice;
-          motsPlaces.push({ ...mot, x: x, y: y, numero: compteurIndice });
-          compteurIndice++;
-        }
-        return;
-      }
-
-      const croisement = chercherCroisement(mot);
-      if (croisement) {
-        for (let i = 0; i < mot.mot.length; i++) {
-          const cx = vertical ? croisement.x + i : croisement.x;
-          const cy = vertical ? croisement.y : croisement.y + i;
-          grille[cx][cy] = mot.mot[i];
-        }
-        numeros[croisement.x][croisement.y] = compteurIndice;
-        motsPlaces.push({ ...mot, x: croisement.x, y: croisement.y, numero: compteurIndice });
-        compteurIndice++;
-      }
-    }
-
     function genererGrille() {
-      const motsMelanges = dictionnaire.sort(() => 0.5 - Math.random());
-      motsMelanges.forEach((mot, i) => {
-        placerMot(mot, i % 2 === 0);
-      });
-    }
+      initGrille();
+      const motsMelanges = dictionnaire.slice().sort(() => 0.5 - Math.random());
+      let motsAPlacer = motsMelanges.slice(0, 8);
 
-    function verifierReponses() {
-      const inputs = document.querySelectorAll("input");
-      for (const input of inputs) {
-        const lettre = input.value.toUpperCase();
-        if (lettre !== input.dataset.solution) {
-          document.getElementById("message").textContent = "";
-          return;
+      const premierMot = motsAPlacer[0];
+      const x = Math.floor(taille / 2);
+      const y = Math.floor((taille - premierMot.mot.length) / 2);
+      if (!zoneValidePourPlacement(x, y, premierMot.mot, false)) {
+        return false;
+      }
+      placerMotSurGrille(x, y, premierMot.mot, false, compteurIndice++);
+
+      for (let k = 1; k < motsAPlacer.length; k++) {
+        const mot = motsAPlacer[k].mot;
+        const placement = chercherPlacementAvecCroisement(mot);
+        if (placement) {
+          placerMotSurGrille(placement.x, placement.y, mot, placement.vertical, compteurIndice++);
+        } else {
+          return false;
         }
       }
-      document.getElementById("message").textContent = "🎉 Félicitations ! Vous avez complété la grille !";
+      return true;
+    }
+
+    function genererGrilleValide() {
+      for (let essai = 0; essai < 10; essai++) {
+        if (genererGrille()) return true;
+      }
+      return false;
     }
 
     function afficherGrille() {
@@ -242,6 +251,20 @@
       });
     }
 
+    function verifierReponses() {
+      const inputs = document.querySelectorAll("input");
+      for (const input of inputs) {
+        const lettre = input.value.toUpperCase();
+        if (lettre !== input.dataset.solution) {
+          document.getElementById("message").textContent = "";
+          return;
+        }
+      }
+      if (confirm("🎉 Félicitations ! Vous avez complété la grille !\nVoulez-vous générer une nouvelle grille ?")) {
+        demarrer();
+      }
+    }
+
     function revelerSolution() {
       const inputs = document.querySelectorAll("input");
       inputs.forEach(input => {
@@ -250,10 +273,17 @@
       verifierReponses();
     }
 
-    genererGrille();
-    afficherGrille();
-    afficherDefinitions();
+    function demarrer() {
+      if (!genererGrilleValide()) {
+        alert("Impossible de générer une grille cohérente, veuillez réessayer.");
+        return;
+      }
+      afficherGrille();
+      afficherDefinitions();
+      document.getElementById("message").textContent = "";
+    }
+
+    demarrer();
   </script>
 </body>
 </html>
-
