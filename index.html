@@ -1,334 +1,294 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mots Croisés</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-      max-width: 700px;
-      margin: auto;
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 10px;
-    }
-    table {
-      border-collapse: collapse;
-      margin: auto;
-      margin-bottom: 20px;
-    }
-    td {
-      width: 32px;
-      height: 32px;
-      border: 1px solid #999;
-      position: relative;
-      background-color: #fff;
-      vertical-align: top;
-    }
-    td.empty {
-      background-color: #eee;
-      border: none;
-    }
-    td input {
-      width: 100%;
-      height: 100%;
-      border: none;
-      font-weight: bold;
-      font-size: 18px;
-      text-align: center;
-      text-transform: uppercase;
-      outline: none;
-      cursor: text;
-    }
-    .number {
-      position: absolute;
-      top: 1px;
-      left: 2px;
-      font-size: 10px;
-      color: #333;
-      user-select: none;
-    }
-    #clues {
-      margin-top: 20px;
-      border-top: 1px solid #ccc;
-      padding-top: 10px;
-    }
-    .clue {
-      margin: 5px 0;
-      font-size: 14px;
-    }
-    #message {
-      font-weight: bold;
-      font-size: 20px;
-      color: green;
-      text-align: center;
-      margin-top: 15px;
-    }
-    button {
-      display: block;
-      margin: 10px auto 30px auto;
-      padding: 10px 20px;
-      font-size: 16px;
-      border-radius: 5px;
-      border: none;
-      background-color: #007bff;
-      color: white;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mots Croisés Backtracking</title>
+<style>
+  body { font-family: sans-serif; max-width:700px; margin:auto; padding:20px;}
+  table {border-collapse: collapse; margin:auto; margin-bottom:20px;}
+  td {width:32px; height:32px; border:1px solid #999; position:relative; background:#fff;}
+  td.empty {background:#eee; border:none;}
+  td input {width:100%; height:100%; font-weight:bold; font-size:18px; text-align:center; text-transform:uppercase; border:none; outline:none;}
+  .number {position:absolute; top:1px; left:2px; font-size:10px; color:#333; user-select:none;}
+  #clues {margin-top:20px; border-top:1px solid #ccc; padding-top:10px;}
+  .clue {margin:5px 0; font-size:14px;}
+  #message {font-weight:bold; font-size:20px; color:green; text-align:center; margin-top:15px;}
+  button {display:block; margin:10px auto 30px; padding:10px 20px; font-size:16px; border-radius:5px; border:none; background:#007bff; color:#fff; cursor:pointer;}
+  button:hover {background:#0056b3;}
+</style>
 </head>
 <body>
-  <h1>Mots Croisés</h1>
-  <div id="grid"></div>
-  <button id="revealBtn">Révéler la solution</button>
-  <div id="clues"></div>
-  <div id="message"></div>
+<h1>Mots Croisés Backtracking</h1>
+<div id="grid"></div>
+<button id="revealBtn">Révéler la solution</button>
+<div id="clues"></div>
+<div id="message"></div>
 
 <script>
-  const dictionnaire = [
-    { mot: "ABRICOT", definition: "Fruit orangé, doux et sucré." },
-    { mot: "BANANIER", definition: "Arbre tropical qui produit des bananes." },
-    { mot: "CABANONS", definition: "Petites constructions en bois ou métal." },
-    { mot: "DAUPHINS", definition: "Mammifères marins intelligents." },
-    { mot: "ÉCORCES", definition: "Partie externe protectrice des arbres." },
-    { mot: "FUSIONS", definition: "Action de joindre deux choses ensemble." },
-    { mot: "GÉNÉRAL", definition: "Haut gradé militaire." },
-    { mot: "HARMONIE", definition: "Accord agréable entre plusieurs éléments." },
-    { mot: "IMPRESSÉ", definition: "Qui a été imprimé sur du papier." },
-    { mot: "JONGLER", definition: "Lancer plusieurs objets en l'air en même temps." },
-    { mot: "KIOSQUE", definition: "Petit bâtiment souvent dans un parc ou rue." },
-    { mot: "LORGNER", definition: "Regarder de manière intéressée." },
-    { mot: "MARTIAL", definition: "Relatif à la guerre ou aux combats." },
-    { mot: "NATATION", definition: "Sport de la nage." },
-    { mot: "OXYDANT", definition: "Substance qui provoque l'oxydation." },
-    { mot: "PAPIERS", definition: "Feuilles utilisées pour écrire ou dessiner." },
-    { mot: "QUÊTEUR", definition: "Personne en recherche ou quête de quelque chose." },
-    { mot: "RITUELS", definition: "Actions répétées dans un certain ordre." },
-    { mot: "SAVOIRS", definition: "Connaissances acquises." },
-    { mot: "TERRAIN", definition: "Surface de terre, lieu pour jouer ou cultiver." },
-    // 10 mots courts pour équilibrer
-    { mot: "CHAT", definition: "Animal domestique qui miaule." },
-    { mot: "LUNE", definition: "Satellite naturel de la Terre." },
-    { mot: "ARBRE", definition: "Plante ligneuse avec un tronc." },
-    { mot: "FEU", definition: "Combustion dégageant lumière et chaleur." },
-    { mot: "MER", definition: "Grande étendue d'eau salée." },
-    { mot: "AVION", definition: "Appareil volant motorisé." },
-    { mot: "SOLEIL", definition: "Étoile au centre de notre système solaire." },
-    { mot: "ROSE", definition: "Fleur souvent offerte en amour." },
-    { mot: "GLACE", definition: "Eau congelée ou dessert froid sucré." },
-    { mot: "NEIGE", definition: "Précipitation solide en hiver." }
-  ];
+const taille = 12;
+const dictionnaire = [
+  { mot: "ABRICOT", definition: "Fruit orangé, doux et sucré." },
+  { mot: "BANANIER", definition: "Arbre tropical qui produit des bananes." },
+  { mot: "DAUPHINS", definition: "Mammifères marins intelligents." },
+  { mot: "HARMONIE", definition: "Accord agréable entre plusieurs éléments." },
+  { mot: "IMPRESSÉ", definition: "Qui a été imprimé sur du papier." },
+  { mot: "JONGLER", definition: "Lancer plusieurs objets en l'air en même temps." },
+  { mot: "KIOSQUE", definition: "Petit bâtiment souvent dans un parc ou rue." },
+  { mot: "MARTIAL", definition: "Relatif à la guerre ou aux combats." },
+  { mot: "NATATION", definition: "Sport de la nage." },
+  { mot: "OXYDANT", definition: "Substance qui provoque l'oxydation." },
+  { mot: "QUÊTEUR", definition: "Personne en recherche ou quête de quelque chose." },
+  { mot: "RITUELS", definition: "Actions répétées dans un certain ordre." },
+  { mot: "SAVOIRS", definition: "Connaissances acquises." },
+  { mot: "TERRAIN", definition: "Surface de terre, lieu pour jouer ou cultiver." },
+  { mot: "CABANONS", definition: "Petites constructions en bois ou métal." }
+];
 
-  const taille = 12;
-  let grille, numeros, motsPlaces, compteurIndice;
+// Variables globales
+let grille, numeros, motsPlaces, compteurIndice;
 
-  function initGrille() {
-    grille = Array.from({ length: taille }, () => Array(taille).fill(""));
-    numeros = Array.from({ length: taille }, () => Array(taille).fill(null));
-    motsPlaces = [];
-    compteurIndice = 1;
-  }
+function creerGrilleVide() {
+  return Array.from({ length: taille }, () => Array(taille).fill(null));
+}
 
-  // Vérifie si on peut placer mot à (x,y) verticalement ou horizontalement (vertical = booléen)
-  function zoneValidePourPlacement(x, y, mot, vertical) {
-    const dx = vertical ? 1 : 0;
-    const dy = vertical ? 0 : 1;
+// Vérifie si on peut placer un mot en (x,y) verticalement (vertical=true) ou horizontalement (vertical=false)
+function peutPlacerMot(x, y, mot, vertical, grilleLocale) {
+  const dx = vertical ? 1 : 0;
+  const dy = vertical ? 0 : 1;
 
-    for (let i = 0; i < mot.length; i++) {
-      const nx = x + i*dx;
-      const ny = y + i*dy;
+  for(let i=0; i<mot.length; i++) {
+    let nx = x + dx*i;
+    let ny = y + dy*i;
+    if(nx < 0 || ny < 0 || nx >= taille || ny >= taille) return false;
 
-      if (nx < 0 || ny < 0 || nx >= taille || ny >= taille) return false;
+    let lettreCase = grilleLocale[nx][ny];
+    if(lettreCase && lettreCase !== mot[i]) return false;
 
-      const lettre = grille[nx][ny];
-      if (lettre && lettre !== mot[i]) return false;
-
-      // Vérifier les cases adjacentes (pas sur le chemin) pour éviter mots accolés invalides
-      if (!lettre) {
-        // Voisins orthogonaux
-        const voisins = [
-          [nx-1, ny], [nx+1, ny],
-          [nx, ny-1], [nx, ny+1]
-        ];
-        for (const [vx, vy] of voisins) {
-          if (vx >=0 && vy >=0 && vx < taille && vy < taille) {
-            if (grille[vx][vy]) {
-              // Exception : case juste avant ou après le mot (pour éviter bloquer le mot en début ou fin)
-              if (!( (vx === x - dx && vy === y - dy) || (vx === x + dx*mot.length && vy === y + dy*mot.length))) {
-                return false;
-              }
-            }
+    // Vérif cases adjacentes
+    // Sauf les cases dans la direction du mot
+    let adjacents = [
+      [nx-1, ny],
+      [nx+1, ny],
+      [nx, ny-1],
+      [nx, ny+1]
+    ];
+    for(let [ax, ay] of adjacents) {
+      if(ax >= 0 && ay >= 0 && ax < taille && ay < taille) {
+        if(grilleLocale[ax][ay]) {
+          // Exceptions : cases avant ou après le mot
+          let bx = x - dx;
+          let by = y - dy;
+          let ax2 = x + dx*mot.length;
+          let ay2 = y + dy*mot.length;
+          if(!((ax === bx && ay === by) || (ax === ax2 && ay === ay2))) {
+            if(!grilleLocale[nx][ny]) return false;
           }
         }
       }
     }
-    // Vérifie la case avant et après le mot pour ne pas créer des mots accolés invalides
-    const bx = x - dx;
-    const by = y - dy;
-    const ax = x + dx*mot.length;
-    const ay = y + dy*mot.length;
-
-    if (bx >= 0 && by >= 0 && bx < taille && by < taille && grille[bx][by]) return false;
-    if (ax >= 0 && ay >= 0 && ax < taille && ay < taille && grille[ax][ay]) return false;
-
-    return true;
   }
 
-  function placerMotSurGrille(x, y, mot, vertical, numero) {
-    const dx = vertical ? 1 : 0;
-    const dy = vertical ? 0 : 1;
-    for (let i = 0; i < mot.length; i++) {
-      grille[x + i*dx][y + i*dy] = mot[i];
+  // Vérifier la case avant et après le mot pour ne pas couper un autre mot
+  let bx = x - (vertical ? 1 : 0);
+  let by = y - (vertical ? 0 : 1);
+  let ax = x + (vertical ? mot.length : 0);
+  let ay = y + (vertical ? 0 : mot.length);
+
+  if(bx >= 0 && by >= 0 && bx < taille && by < taille && grilleLocale[bx][by]) return false;
+  if(ax >= 0 && ay >= 0 && ax < taille && ay < taille && grilleLocale[ax][ay]) return false;
+
+  return true;
+}
+
+// Place un mot sur la grille locale
+function placerMot(x, y, mot, vertical, grilleLocale) {
+  const dx = vertical ? 1 : 0;
+  const dy = vertical ? 0 : 1;
+
+  for(let i=0; i<mot.length; i++) {
+    grilleLocale[x + dx*i][y + dy*i] = mot[i];
+  }
+}
+
+// Retire un mot (remet à null) sur la grille locale
+function retirerMot(x, y, mot, vertical, grilleLocale) {
+  const dx = vertical ? 1 : 0;
+  const dy = vertical ? 0 : 1;
+
+  for(let i=0; i<mot.length; i++) {
+    // Pour ne pas effacer une lettre qui appartient à un autre mot, vérifier si lettre est unique
+    let nx = x + dx*i;
+    let ny = y + dy*i;
+    // Simple méthode : si case ne correspond qu'à ce mot, on supprime
+    // Ici on supprime toujours car backtracking strict (on réessaie)
+    grilleLocale[nx][ny] = null;
+  }
+}
+
+// Trouve toutes les positions possibles pour placer un mot en croisant un mot déjà placé
+function positionsPossibles(mot, grilleLocale, motsPlacesLoc) {
+  let positions = [];
+  if(motsPlacesLoc.length === 0) {
+    // Pas de mot placé, placer au centre horizontalement et verticalement
+    const centre = Math.floor(taille/2);
+    if(peutPlacerMot(centre, Math.floor((taille - mot.length)/2), mot, false, grilleLocale)) {
+      positions.push({x: centre, y: Math.floor((taille - mot.length)/2), vertical:false});
     }
-    numeros[x][y] = numero;
-    motsPlaces.push({ mot, x, y, vertical, numero, definition: dictionnaire.find(d => d.mot === mot).definition });
+    if(peutPlacerMot(Math.floor((taille - mot.length)/2), centre, mot, true, grilleLocale)) {
+      positions.push({x: Math.floor((taille - mot.length)/2), y: centre, vertical:true});
+    }
+    return positions;
   }
 
-  // Cherche une position possible pour placer mot en croisant un mot déjà placé
-  function chercherPlacementAvecCroisement(mot) {
-    for (const motExistant of motsPlaces) {
-      for (let i = 0; i < mot.length; i++) {
-        const lettre = mot[i];
-        for (let j = 0; j < motExistant.mot.length; j++) {
-          if (motExistant.mot[j] === lettre) {
-            // Calcul position possible
-            let x, y, vertical;
-            if (motExistant.vertical) {
-              // motExistant vertical, donc mot nouveau horizontal
-              vertical = false;
-              x = motExistant.x + j;
-              y = motExistant.y - i;
-            } else {
-              // motExistant horizontal, donc mot nouveau vertical
-              vertical = true;
-              x = motExistant.x - i;
-              y = motExistant.y + j;
-            }
-            if (zoneValidePourPlacement(x, y, mot, vertical)) {
-              return { x, y, vertical };
-            }
+  // Sinon chercher toutes possibilités où le mot peut croiser un mot déjà placé
+  for(const mp of motsPlacesLoc) {
+    const motExistant = mp.mot;
+    for(let i=0; i<mot.length; i++) {
+      for(let j=0; j<motExistant.length; j++) {
+        if(mot[i] === motExistant[j]) {
+          let x, y, vertical;
+          if(mp.vertical) {
+            vertical = false; // Le nouveau mot sera horizontal
+            x = mp.x + j;
+            y = mp.y - i;
+          } else {
+            vertical = true; // Le nouveau mot sera vertical
+            x = mp.x - i;
+            y = mp.y + j;
+          }
+          if(peutPlacerMot(x, y, mot, vertical, grilleLocale)) {
+            positions.push({x, y, vertical});
           }
         }
       }
     }
-    return null;
+  }
+  return positions;
+}
+
+// Backtracking pour placer tous les mots
+function placerMotsRec(mots, index, grilleLocale, motsPlacesLoc) {
+  if(index >= mots.length) return true; // tous placés
+
+  const motObj = mots[index];
+  const positions = positionsPossibles(motObj.mot, grilleLocale, motsPlacesLoc);
+
+  for(const pos of positions) {
+    placerMot(pos.x, pos.y, motObj.mot, pos.vertical, grilleLocale);
+    motsPlacesLoc.push({ mot: motObj.mot, x: pos.x, y: pos.y, vertical: pos.vertical, definition: motObj.definition });
+
+    if(placerMotsRec(mots, index+1, grilleLocale, motsPlacesLoc)) return true;
+
+    // backtrack
+    retirerMot(pos.x, pos.y, motObj.mot, pos.vertical, grilleLocale);
+    motsPlacesLoc.pop();
   }
 
-  // Génération de la grille
-  function genererGrille() {
-    initGrille();
-    // Trier mots par longueur décroissante
-    const motsTrie = dictionnaire.slice().sort((a,b) => b.mot.length - a.mot.length);
+  return false;
+}
 
-    // Placer premier mot au centre, on essaye plusieurs lignes proches du centre
-    const premierMot = motsTrie[0];
-    const lignesCentre = [Math.floor(taille/2), Math.floor(taille/2)-1, Math.floor(taille/2)+1, Math.floor(taille/2)-2, Math.floor(taille/2)+2];
-    let premierPlace = false;
-    for (const ligne of lignesCentre) {
-      const x = ligne;
-      const y = Math.floor((taille - premierMot.mot.length) / 2);
-      if (zoneValidePourPlacement(x, y, premierMot.mot, false)) {
-        placerMotSurGrille(x, y, premierMot.mot, false, compteurIndice++);
-        premierPlace = true;
-        break;
-      }
-    }
-    if (!premierPlace) return false;
+// Fonction principale de génération
+function genererGrille() {
+  grille = creerGrilleVide();
+  numeros = creerGrilleVide();
+  motsPlaces = [];
+  compteurIndice = 1;
 
-    // Placer les autres mots
-    for (let i = 1; i < motsTrie.length; i++) {
-      const mot = motsTrie[i].mot;
-      const placement = chercherPlacementAvecCroisement(mot);
-      if (!placement) return false;
-      placerMotSurGrille(placement.x, placement.y, mot, placement.vertical, compteurIndice++);
-    }
-    return true;
-  }
+  // Trier les mots par longueur décroissante pour meilleur remplissage
+  let motsTries = dictionnaire.slice().sort((a,b) => b.mot.length - a.mot.length);
 
-  function genererGrilleValide() {
-    for (let i = 0; i < 100; i++) {
-      if (genererGrille()) return true;
-    }
+  if(!placerMotsRec(motsTries, 0, grille, motsPlaces)) {
     return false;
   }
 
-  function afficherGrille() {
-    const divGrid = document.getElementById("grid");
-    divGrid.innerHTML = "";
-    const table = document.createElement("table");
+  // Numérotation des mots (première case)
+  for(const mp of motsPlaces) {
+    if(!numeros[mp.x][mp.y]) {
+      numeros[mp.x][mp.y] = compteurIndice++;
+    }
+  }
 
-    for (let i = 0; i < taille; i++) {
-      const tr = document.createElement("tr");
-      for (let j = 0; j < taille; j++) {
-        const td = document.createElement("td");
-        if (grille[i][j]) {
-          const input = document.createElement("input");
-          input.setAttribute("maxlength", "1");
-          input.dataset.solution = grille[i][j];
-          input.addEventListener("input", verifierReponses);
-          td.appendChild(input);
-          if (numeros[i][j]) {
-            const numDiv = document.createElement("div");
-            numDiv.className = "number";
-            numDiv.textContent = numeros[i][j];
-            td.appendChild(numDiv);
-          }
-        } else {
-          td.className = "empty";
+  return true;
+}
+
+function afficherGrille() {
+  const divGrid = document.getElementById("grid");
+  divGrid.innerHTML = "";
+  const table = document.createElement("table");
+
+  for(let i=0; i<taille; i++) {
+    const tr = document.createElement("tr");
+    for(let j=0; j<taille; j++) {
+      const td = document.createElement("td");
+      if(grille[i][j]) {
+        const input = document.createElement("input");
+        input.setAttribute("maxlength", "1");
+        input.dataset.solution = grille[i][j];
+        input.addEventListener("input", verifierReponses);
+        td.appendChild(input);
+
+        if(numeros[i][j]) {
+          const numDiv = document.createElement("div");
+          numDiv.className = "number";
+          numDiv.textContent = numeros[i][j];
+          td.appendChild(numDiv);
         }
-        tr.appendChild(td);
+      } else {
+        td.className = "empty";
       }
-      table.appendChild(tr);
+      tr.appendChild(td);
     }
-    divGrid.appendChild(table);
+    table.appendChild(tr);
   }
+  divGrid.appendChild(table);
+}
 
-  function afficherDefinitions() {
-    const divClues = document.getElementById("clues");
-    divClues.innerHTML = "<h3>Définitions</h3>";
-    motsPlaces.sort((a,b) => a.numero - b.numero);
-    for (const motPlace of motsPlaces) {
-      const p = document.createElement("p");
-      p.className = "clue";
-      p.textContent = motPlace.numero + ". " + motPlace.definition;
-      divClues.appendChild(p);
+function afficherDefinitions() {
+  const divClues = document.getElementById("clues");
+  divClues.innerHTML = "<h3>Définitions</h3>";
+  motsPlaces.sort((a,b) => {
+    let na = numeros[a.x][a.y] || 0;
+    let nb = numeros[b.x][b.y] || 0;
+    return na - nb;
+  });
+  for(const mp of motsPlaces) {
+    const numero = numeros[mp.x][mp.y];
+    const p = document.createElement("p");
+    p.className = "clue";
+    p.textContent = numero + ". " + mp.definition;
+    divClues.appendChild(p);
+  }
+}
+
+function verifierReponses() {
+  const inputs = document.querySelectorAll("td input");
+  for(const input of inputs) {
+    if(input.value.toUpperCase() !== input.dataset.solution) {
+      document.getElementById("message").textContent = "";
+      return;
     }
   }
+  document.getElementById("message").textContent = "Bravo ! Tu as complété la grille ! 🎉";
+}
 
-  function verifierReponses() {
-    const inputs = document.querySelectorAll("td input");
-    for (const input of inputs) {
-      if (input.value.toUpperCase() !== input.dataset.solution) {
-        document.getElementById("message").textContent = "";
-        return;
-      }
-    }
-    document.getElementById("message").textContent = "Bravo ! Tu as complété la grille ! 🎉";
+function revelerSolution() {
+  const inputs = document.querySelectorAll("td input");
+  for(const input of inputs) {
+    input.value = input.dataset.solution;
   }
+  verifierReponses();
+}
 
-  function revelerSolution() {
-    const inputs = document.querySelectorAll("td input");
-    for (const input of inputs) {
-      input.value = input.dataset.solution;
-    }
-    verifierReponses();
-  }
+document.getElementById("revealBtn").addEventListener("click", revelerSolution);
 
-  document.getElementById("revealBtn").addEventListener("click", revelerSolution);
+if(!genererGrille()) {
+  alert("Impossible de générer une grille cohérente avec ces mots.");
+} else {
+  afficherGrille();
+  afficherDefinitions();
+}
 
-  // Générer la grille et afficher
-  if (!genererGrilleValide()) {
-    alert("Impossible de générer une grille cohérente avec ces mots.");
-  } else {
-    afficherGrille();
-    afficherDefinitions();
-  }
 </script>
 
 </body>
