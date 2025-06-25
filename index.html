@@ -47,12 +47,32 @@
     .clue {
       margin: 5px 0;
     }
+    #message {
+      font-weight: bold;
+      font-size: 20px;
+      color: green;
+      margin-top: 20px;
+    }
+    .reveal-button {
+      margin-top: 10px;
+      padding: 8px 16px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .reveal-button:hover {
+      background-color: #0056b3;
+    }
   </style>
 </head>
 <body>
   <h1>Mots Croisés</h1>
   <div id="grid"></div>
+  <button class="reveal-button" onclick="revelerSolution()">Révéler la solution</button>
   <div id="clues"></div>
+  <div id="message"></div>
 
   <script>
     const dictionnaire = [
@@ -74,14 +94,42 @@
     const motsPlaces = [];
     let compteurIndice = 1;
 
-    function peutCroiser(mot, x, y, vertical, indexCroisement) {
+    function zoneValidePourPlacement(x, y, mot, vertical) {
+      const dx = vertical ? 1 : 0;
+      const dy = vertical ? 0 : 1;
       for (let i = 0; i < mot.length; i++) {
-        const cx = vertical ? x + i : x;
-        const cy = vertical ? y : y + i;
-        if (cx >= taille || cy >= taille) return false;
-        const lettre = grille[cx][cy];
+        const nx = x + i * dx;
+        const ny = y + i * dy;
+        if (nx >= taille || ny >= taille) return false;
+        const lettre = grille[nx][ny];
         if (lettre && lettre !== mot[i]) return false;
+
+        if (!lettre) {
+          const voisins = [
+            [nx - 1, ny], [nx + 1, ny],
+            [nx, ny - 1], [nx, ny + 1]
+          ];
+          for (const [vx, vy] of voisins) {
+            if (
+              vx >= 0 && vy >= 0 && vx < taille && vy < taille &&
+              grille[vx][vy] &&
+              !(dx && vx === nx - dx) && !(dy && vy === ny - dy)
+            ) {
+              return false;
+            }
+          }
+        }
       }
+
+      const bx = x - dx;
+      const by = y - dy;
+      const ax = x + dx * mot.length;
+      const ay = y + dy * mot.length;
+      if ((bx >= 0 && by >= 0 && bx < taille && by < taille && grille[bx][by]) ||
+          (ax >= 0 && ay >= 0 && ax < taille && ay < taille && grille[ax][ay])) {
+        return false;
+      }
+
       return true;
     }
 
@@ -95,7 +143,7 @@
               const y = motExistant.y + (motExistant.vertical ? 0 : j);
               const nvx = x - (mot.vertical ? i : 0);
               const nvy = y - (mot.vertical ? 0 : i);
-              if (peutCroiser(mot.mot, nvx, nvy, mot.vertical, i)) {
+              if (zoneValidePourPlacement(nvx, nvy, mot.mot, mot.vertical)) {
                 return { x: nvx, y: nvy };
               }
             }
@@ -110,12 +158,14 @@
       if (motsPlaces.length === 0) {
         const x = Math.floor(taille / 2);
         const y = Math.floor((taille - mot.mot.length) / 2);
-        for (let i = 0; i < mot.mot.length; i++) {
-          grille[x][y + i] = mot.mot[i];
+        if (zoneValidePourPlacement(x, y, mot.mot, false)) {
+          for (let i = 0; i < mot.mot.length; i++) {
+            grille[x][y + i] = mot.mot[i];
+          }
+          numeros[x][y] = compteurIndice;
+          motsPlaces.push({ ...mot, x: x, y: y, numero: compteurIndice });
+          compteurIndice++;
         }
-        numeros[x][y] = compteurIndice;
-        motsPlaces.push({ ...mot, x: x, y: y, numero: compteurIndice });
-        compteurIndice++;
         return;
       }
 
@@ -139,6 +189,18 @@
       });
     }
 
+    function verifierReponses() {
+      const inputs = document.querySelectorAll("input");
+      for (const input of inputs) {
+        const lettre = input.value.toUpperCase();
+        if (lettre !== input.dataset.solution) {
+          document.getElementById("message").textContent = "";
+          return;
+        }
+      }
+      document.getElementById("message").textContent = "🎉 Félicitations ! Vous avez complété la grille !";
+    }
+
     function afficherGrille() {
       const table = document.createElement("table");
       for (let i = 0; i < taille; i++) {
@@ -149,6 +211,7 @@
             const input = document.createElement("input");
             input.setAttribute("maxlength", "1");
             input.dataset.solution = grille[i][j];
+            input.addEventListener("input", verifierReponses);
             td.appendChild(input);
             if (numeros[i][j]) {
               const num = document.createElement("div");
@@ -179,9 +242,18 @@
       });
     }
 
+    function revelerSolution() {
+      const inputs = document.querySelectorAll("input");
+      inputs.forEach(input => {
+        input.value = input.dataset.solution;
+      });
+      verifierReponses();
+    }
+
     genererGrille();
     afficherGrille();
     afficherDefinitions();
   </script>
 </body>
 </html>
+
