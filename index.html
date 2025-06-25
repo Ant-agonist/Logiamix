@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mots Croisés</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    table {
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    td {
+      width: 30px;
+      height: 30px;
+      text-align: center;
+      vertical-align: middle;
+      border: 1px solid #999;
+      font-weight: bold;
+      font-size: 18px;
+    }
+    td.empty {
+      background-color: #eee;
+    }
+    #clues {
+      margin-top: 20px;
+    }
+    .clue {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Mots Croisés</h1>
+  <div id="grid"></div>
+  <div id="clues"></div>
+
+  <script>
+    // Base de mots + définitions (extrait d'un jeu de 500 mots)
+    const dictionnaire = [
+      { mot: "CHAT", definition: "Animal domestique qui miaule." },
+      { mot: "LUNE", definition: "Satellite naturel de la Terre." },
+      { mot: "ARBRE", definition: "Plante ligneuse avec un tronc." },
+      { mot: "FEU", definition: "Combustion dégageant lumière et chaleur." },
+      { mot: "MER", definition: "Grande étendue d'eau salée." },
+      { mot: "AVION", definition: "Appareil volant motorisé." },
+      { mot: "SOLEIL", definition: "Étoile au centre de notre système solaire." },
+      { mot: "ROSE", definition: "Fleur souvent offerte en amour." },
+      { mot: "GLACE", definition: "Eau congelée ou dessert froid sucré." },
+      { mot: "NEIGE", definition: "Précipitation solide en hiver." }
+    ]; // Tu pourras étendre à 500 mots ici
+
+    // Crée une grille vide
+    const taille = 12;
+    const grille = Array.from({ length: taille }, () => Array(taille).fill(""));
+    const motsPlaces = [];
+
+    function peutPlacerHorizontal(mot, x, y) {
+      if (y + mot.length > taille) return false;
+      for (let i = 0; i < mot.length; i++) {
+        if (grille[x][y + i] !== "" && grille[x][y + i] !== mot[i]) return false;
+      }
+      return true;
+    }
+
+    function peutPlacerVertical(mot, x, y) {
+      if (x + mot.length > taille) return false;
+      for (let i = 0; i < mot.length; i++) {
+        if (grille[x + i][y] !== "" && grille[x + i][y] !== mot[i]) return false;
+      }
+      return true;
+    }
+
+    function placeMot(mot, vertical) {
+      for (let essai = 0; essai < 50; essai++) {
+        const x = Math.floor(Math.random() * taille);
+        const y = Math.floor(Math.random() * taille);
+        if (vertical) {
+          if (peutPlacerVertical(mot.mot, x, y)) {
+            for (let i = 0; i < mot.mot.length; i++) grille[x + i][y] = mot.mot[i];
+            motsPlaces.push({ mot: mot.mot, def: mot.definition, x, y, vertical });
+            return true;
+          }
+        } else {
+          if (peutPlacerHorizontal(mot.mot, x, y)) {
+            for (let i = 0; i < mot.mot.length; i++) grille[x][y + i] = mot.mot[i];
+            motsPlaces.push({ mot: mot.mot, def: mot.definition, x, y, vertical });
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function genererGrille() {
+      for (const mot of dictionnaire.sort(() => 0.5 - Math.random())) {
+        placeMot(mot, Math.random() < 0.5);
+      }
+    }
+
+    function afficherGrille() {
+      const table = document.createElement("table");
+      for (let i = 0; i < taille; i++) {
+        const tr = document.createElement("tr");
+        for (let j = 0; j < taille; j++) {
+          const td = document.createElement("td");
+          td.textContent = grille[i][j] || "";
+          if (!grille[i][j]) td.classList.add("empty");
+          tr.appendChild(td);
+        }
+        table.appendChild(tr);
+      }
+      document.getElementById("grid").appendChild(table);
+    }
+
+    function afficherDefinitions() {
+      const div = document.getElementById("clues");
+      div.innerHTML = "<h2>Définitions</h2>";
+      motsPlaces.forEach((m, index) => {
+        const p = document.createElement("p");
+        p.className = "clue";
+        p.textContent = `${index + 1}. ${m.def}`;
+        div.appendChild(p);
+      });
+    }
+
+    genererGrille();
+    afficherGrille();
+    afficherDefinitions();
+  </script>
+</body>
+</html>
